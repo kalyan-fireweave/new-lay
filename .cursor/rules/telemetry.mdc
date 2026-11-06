@@ -6,7 +6,7 @@ alwaysApply: false
 
 # Telemetry
 
-The API may emit a metric name only when `packages/catalog/metrics.yaml` lists it and `EMITTED` in `packages/otel/src/index.ts` includes it. Business counters fire on success: `keel.card.created` on 201, `keel.card.moved` when the column changes, `keel.comment.created` on 201, `keel.card.starred` on the first star, `keel.card.duplicated` on 201. A refused duplicate counts `keel.card.duplicate.rejected`. A duplicate that throws counts `keel.card.duplicate.failed`.
+The API may emit a metric name only when `packages/catalog/metrics.yaml` lists it and `EMITTED` in `packages/otel/src/index.ts` includes it. Business counters fire on success: `keel.card.created` on 201, `keel.card.moved` when the column changes, `keel.comment.created` on 201, `keel.card.starred` on the first star, `keel.card.duplicated` on 201. A refused duplicate counts `keel.card.duplicate.rejected`. A duplicate that throws counts `keel.card.duplicate.failed`. `POST /pulse` counts `keel.pulse.recorded` on the application account and posts `keel.pulse.machines` with `keel.signal=infra` and no run id. A refused pulse counts `keel.pulse.rejected`. A pulse the collector refuses counts `keel.pulse.failed`.
 
 App telemetry sets `keel.signal=app` and keeps `keel.run_id`. The infra processor sets `keel.signal=infra` and drops `keel.run_id`. Routing sends `keel.signal == "app"` to the application pipeline. Unmatched items go to the dropped pipeline.
 

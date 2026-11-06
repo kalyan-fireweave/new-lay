@@ -41,6 +41,10 @@ const EMITTED = [
   "keel.card.duplicated",
   "keel.card.duplicate.rejected",
   "keel.card.duplicate.failed",
+  "keel.pulse.recorded",
+  "keel.pulse.rejected",
+  "keel.pulse.failed",
+  "keel.pulse.machines",
 ] as const;
 
 export type BusinessMetric =
@@ -50,7 +54,10 @@ export type BusinessMetric =
   | "keel.card.starred"
   | "keel.card.duplicated"
   | "keel.card.duplicate.rejected"
-  | "keel.card.duplicate.failed";
+  | "keel.card.duplicate.failed"
+  | "keel.pulse.recorded"
+  | "keel.pulse.rejected"
+  | "keel.pulse.failed";
 
 export type RequestSignal = {
   method: string;
@@ -67,7 +74,7 @@ export type RequestSignal = {
 
 export type Telemetry = {
   record(signal: RequestSignal): Promise<void>;
-  record(name: BusinessMetric, status: number): Promise<void>;
+  record(name: BusinessMetric, status: number, runId?: string): Promise<void>;
   flush(): Promise<void>;
 };
 
@@ -208,6 +215,9 @@ export function startTelemetry(options?: {
   const duplicated = counter("keel.card.duplicated");
   const duplicateRejected = counter("keel.card.duplicate.rejected");
   const duplicateFailed = counter("keel.card.duplicate.failed");
+  const pulseRecorded = counter("keel.pulse.recorded");
+  const pulseRejected = counter("keel.pulse.rejected");
+  const pulseFailed = counter("keel.pulse.failed");
   const business = {
     "keel.card.created": created,
     "keel.card.moved": moved,
@@ -216,6 +226,9 @@ export function startTelemetry(options?: {
     "keel.card.duplicated": duplicated,
     "keel.card.duplicate.rejected": duplicateRejected,
     "keel.card.duplicate.failed": duplicateFailed,
+    "keel.pulse.recorded": pulseRecorded,
+    "keel.pulse.rejected": pulseRejected,
+    "keel.pulse.failed": pulseFailed,
   };
 
   async function flush(): Promise<void> {
@@ -228,13 +241,15 @@ export function startTelemetry(options?: {
   }
 
   return {
-    async record(signal, status?: number) {
+    async record(signal, status?: number, runId?: string) {
       if (typeof signal === "string") {
-        business[signal].add(1, {
-          "http.route": "/cards/:id/duplicate",
+        const attributes: Attributes = {
+          "http.route": signal.startsWith("keel.pulse") ? "/pulse" : "/cards/:id/duplicate",
           "http.request.method": "POST",
           "http.response.status_code": status ?? 0,
-        });
+        };
+        if (runId) attributes["keel.run_id"] = runId;
+        business[signal].add(1, attributes);
         return;
       }
       const attributes = signalAttributes(signal);
@@ -256,6 +271,9 @@ export function startTelemetry(options?: {
       if (signal.business === "keel.card.duplicated" && signal.status === 201) business[signal.business].add(1, attributes);
       if (signal.business === "keel.card.duplicate.rejected" && signal.status >= 400 && signal.status < 500) business[signal.business].add(1, attributes);
       if (signal.business === "keel.card.duplicate.failed" && signal.status >= 500) business[signal.business].add(1, attributes);
+      if (signal.business === "keel.pulse.recorded" && signal.status === 201) business[signal.business].add(1, attributes);
+      if (signal.business === "keel.pulse.rejected" && signal.status >= 400 && signal.status < 500) business[signal.business].add(1, attributes);
+      if (signal.business === "keel.pulse.failed" && signal.status >= 500) business[signal.business].add(1, attributes);
       await flush();
     },
     flush,

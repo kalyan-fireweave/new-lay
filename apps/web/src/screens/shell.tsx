@@ -1,6 +1,6 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router";
-import { api } from "../api.ts";
+import { api, ApiError } from "../api.ts";
 import { sessionStore, useSession } from "../store/session.ts";
 import { clearTeamDirectory, refreshTeamDirectory, useTeamDirectory } from "../team-directory.ts";
 import { SearchBox } from "./search.tsx";
@@ -12,6 +12,8 @@ export function Shell() {
   const gate = location.pathname === "/sign-in" || location.pathname === "/sign-up";
   const directory = useTeamDirectory();
   const userId = session.status === "user" ? session.user.id : "";
+  const canPulse = session.status === "user" && session.user.role !== "viewer";
+  const [pulseNote, setPulseNote] = useState("");
 
   useEffect(() => {
     if (!userId) {
@@ -20,6 +22,16 @@ export function Shell() {
     }
     refreshTeamDirectory();
   }, [userId]);
+
+  async function recordPulse() {
+    setPulseNote("");
+    try {
+      await api.pulse();
+      setPulseNote("Recorded.");
+    } catch (error) {
+      setPulseNote(error instanceof ApiError ? error.message : "The request failed.");
+    }
+  }
 
   async function signOut() {
     await api.signOut();
@@ -41,6 +53,12 @@ export function Shell() {
           {session.status === "user" ? (
             <>
               <SearchBox />
+              {canPulse ? (
+                <>
+                  <button className="ghost" type="button" onClick={() => void recordPulse()}>Pulse</button>
+                  {pulseNote ? <span className="hint">{pulseNote}</span> : null}
+                </>
+              ) : null}
               <span className="who">
                 <span className="avatar" aria-hidden="true">{session.user.name.slice(0, 1)}</span>
                 {session.user.name}

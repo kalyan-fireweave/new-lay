@@ -12,6 +12,7 @@ import { boardRoutes } from "./routes/boards.ts";
 import { cardRoutes } from "./routes/cards.ts";
 import { healthRoutes } from "./routes/health.ts";
 import { otelRoutes } from "./routes/otel.ts";
+import { pulseRoutes } from "./routes/pulse.ts";
 import { sessionRoutes } from "./routes/session.ts";
 import { teamRoutes } from "./routes/teams.ts";
 
@@ -24,6 +25,7 @@ export function createApp(pool: pg.Pool, telemetry: Telemetry = startTelemetry()
   app.route("/", boardRoutes(pool));
   app.route("/", cardRoutes(pool, telemetry));
   app.route("/", teamRoutes(pool));
+  app.route("/", pulseRoutes(pool, telemetry));
   app.onError((error, c) => {
     console.error(error instanceof Error ? error.message : error);
     return c.json({ error: { code: "internal", message: "The request failed." } }, 500);

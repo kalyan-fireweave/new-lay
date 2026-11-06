@@ -1,0 +1,34 @@
+id: record-pulse
+title: Record a pulse
+feature: board.pulse
+actor: grace
+actors: [member, owner]
+metrics: [keel.pulse.recorded, keel.pulse.machines]
+steps:
+  - id: sign-in
+    ui:
+      - { goto: /sign-in }
+      - { see: Sign in }
+      - { fill: { label: Email, text: grace@keel.test } }
+      - { fill: { label: Password, text: keel-local-only } }
+      - { click: Sign in }
+      - { see: Launch }
+    api:
+      method: POST
+      path: /session
+      body:
+        email: grace@keel.test
+        password: keel-local-only
+      expect: 201
+    thinkMs: { min: 200, max: 600 }
+  - id: pulse
+    ui:
+      - { goto: /boards/launch }
+      - { see: Pulse }
+      - { click: Pulse }
+      - { see: Recorded. }
+    api:
+      method: POST
+      path: /pulse
+      expect: 201
+    thinkMs: { min: 200, max: 800 }

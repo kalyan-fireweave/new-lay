@@ -85,4 +85,5 @@ export const api = {
     request<{ team: Team }>(`/teams/${teamId}/members`, { method: "POST", body: JSON.stringify({ userIds }) }),
   removeMember: (teamId: string, userId: string) =>
     request<{ team: Team }>(`/teams/${teamId}/members/${userId}`, { method: "DELETE" }),
+  pulse: () => request<{ recorded: boolean }>("/pulse", { method: "POST" }),
 };
