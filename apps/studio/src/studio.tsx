@@ -11,6 +11,9 @@ const titles: Record<string, string> = {
   "keel.card.moved": "Cards moved",
   "keel.comment.created": "Comments",
   "keel.card.starred": "Stars",
+  "keel.card.duplicated": "Cards copied",
+  "keel.card.duplicate.rejected": "Copies refused",
+  "keel.card.duplicate.failed": "Copies failed",
   "http.server.requests": "Requests",
   "http.server.request.duration": "Request time",
 };
@@ -20,6 +23,9 @@ const plain: Record<string, string> = {
   "keel.card.moved": "A card changed column.",
   "keel.comment.created": "A comment was saved.",
   "keel.card.starred": "A card was starred.",
+  "keel.card.duplicated": "A card was copied.",
+  "keel.card.duplicate.rejected": "A copy was refused.",
+  "keel.card.duplicate.failed": "A copy failed.",
   "http.server.requests": "The API answered a call.",
   "http.server.request.duration": "How long a call took.",
 };

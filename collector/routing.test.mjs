@@ -14,6 +14,15 @@ function leave(signalName, value) {
   return base.service.pipelines[pipeline].exporters;
 }
 
+test("machine metrics are marked infra before they are routed", () => {
+  const machines = base.service.pipelines["metrics/machines"];
+  const application = base.service.pipelines.metrics;
+  assert.ok(machines.processors.includes("resource/infra"));
+  assert.equal(application.processors.includes("resource/infra"), false);
+  assert.deepEqual(machines.receivers, ["hostmetrics", "postgresql", "prometheus/collector"]);
+  assert.deepEqual(base.service.pipelines["metrics/infra"].exporters, leave("metrics", "infra"));
+});
+
 for (const signalName of ["logs", "traces", "metrics"]) {
   test(`${signalName} app and infra leave on different exporters`, () => {
     const app = leave(signalName, "app");

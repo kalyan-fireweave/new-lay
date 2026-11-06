@@ -1,0 +1,41 @@
+id: forbidden-duplicate
+title: A viewer cannot duplicate a card
+feature: cards.duplicate
+actor: linus
+actors: [viewer]
+metrics: [keel.card.duplicate.rejected]
+steps:
+  - id: sign-in
+    ui:
+      - { goto: /sign-in }
+      - { see: Sign in }
+      - { fill: { label: Email, text: linus@keel.test } }
+      - { fill: { label: Password, text: keel-local-only } }
+      - { click: Sign in }
+      - { see: Launch }
+    api:
+      method: POST
+      path: /session
+      body:
+        email: linus@keel.test
+        password: keel-local-only
+      expect: 201
+    thinkMs: { min: 200, max: 600 }
+  - id: read-board
+    ui:
+      - { goto: /boards/launch }
+      - { see: Draft the README }
+    api:
+      method: GET
+      path: /boards/launch
+      expect: 200
+    thinkMs: { min: 200, max: 600 }
+  - id: duplicate
+    ui:
+      - { see: Draft the README }
+    api:
+      method: POST
+      path: /cards/card_01/duplicate
+      body: {}
+      expect: 403
+    thinkMs: { min: 200, max: 800 }

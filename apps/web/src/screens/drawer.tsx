@@ -20,6 +20,7 @@ export function Drawer() {
   const [starred, setStarred] = useState(false);
   const keyRef = useRef<string | null>(null);
   const starKey = useRef<string | null>(null);
+  const duplicateKey = useRef<string | null>(null);
 
   useEffect(() => {
     setTitle(card?.title ?? "");
@@ -28,6 +29,7 @@ export function Drawer() {
   if (!card) return <aside className="drawer">That card is not on this board.</aside>;
 
   const canEditTitle = editor?.role === "owner" || (editor?.role === "member" && editor.id === card.authorId);
+  const canDuplicate = editor?.role === "owner" || (editor?.role === "member" && editor.id === card.authorId);
 
   async function saveTitle() {
     const current = boardStore.get(boardId)?.cardsById[cardId];
@@ -47,6 +49,19 @@ export function Drawer() {
       }
       setError(caught instanceof Error ? caught.message : "The title could not be saved.");
       setTitle(boardStore.get(boardId)?.cardsById[cardId]?.title ?? current.title);
+    }
+  }
+
+  async function onDuplicate() {
+    if (!duplicateKey.current) duplicateKey.current = crypto.randomUUID();
+    try {
+      const body = await api.duplicateCard(cardId, duplicateKey.current);
+      boardStore.applyCard(boardId, body.card);
+      duplicateKey.current = null;
+      setError("");
+    } catch (caught) {
+      if (!(caught instanceof ApiError && caught.status === 409)) duplicateKey.current = null;
+      setError(caught instanceof Error ? caught.message : "The card could not be duplicated.");
     }
   }
 
@@ -101,6 +116,7 @@ export function Drawer() {
         />
       </label>
       <button className="ghost" type="button" onClick={() => void onStar()}>{starred ? "Starred" : "Star"}</button>
+      {canDuplicate ? <button type="button" onClick={() => void onDuplicate()}>Duplicate</button> : null}
       {error ? <p className="alert" role="alert">{error}</p> : null}
       <ul className="comments">
         {(thread?.comments ?? []).map((item) => (

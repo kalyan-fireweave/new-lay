@@ -24,3 +24,15 @@ metrics:
     kind: counter
     signal: app
     description: First time a person stars a card.
+  - name: keel.card.duplicated
+    kind: counter
+    signal: app
+    description: Cards saved by POST /cards/:id/duplicate.
+  - name: keel.card.duplicate.rejected
+    kind: counter
+    signal: app
+    description: Duplicate requests the API refused.
+  - name: keel.card.duplicate.failed
+    kind: counter
+    signal: app
+    description: Duplicate requests that failed inside the API.

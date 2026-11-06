@@ -22,7 +22,7 @@ export function createApp(pool: pg.Pool, telemetry: Telemetry = startTelemetry()
   app.route("/", otelRoutes());
   app.route("/", sessionRoutes(pool));
   app.route("/", boardRoutes(pool));
-  app.route("/", cardRoutes(pool));
+  app.route("/", cardRoutes(pool, telemetry));
   app.route("/", teamRoutes(pool));
   app.onError((error, c) => {
     console.error(error instanceof Error ? error.message : error);

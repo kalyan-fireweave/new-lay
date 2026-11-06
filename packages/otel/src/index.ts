@@ -38,9 +38,19 @@ const EMITTED = [
   "keel.card.moved",
   "keel.comment.created",
   "keel.card.starred",
+  "keel.card.duplicated",
+  "keel.card.duplicate.rejected",
+  "keel.card.duplicate.failed",
 ] as const;
 
-export type BusinessMetric = "keel.card.created" | "keel.card.moved" | "keel.comment.created" | "keel.card.starred";
+export type BusinessMetric =
+  | "keel.card.created"
+  | "keel.card.moved"
+  | "keel.comment.created"
+  | "keel.card.starred"
+  | "keel.card.duplicated"
+  | "keel.card.duplicate.rejected"
+  | "keel.card.duplicate.failed";
 
 export type RequestSignal = {
   method: string;
@@ -57,6 +67,7 @@ export type RequestSignal = {
 
 export type Telemetry = {
   record(signal: RequestSignal): Promise<void>;
+  record(name: BusinessMetric, status: number): Promise<void>;
   flush(): Promise<void>;
 };
 
@@ -194,11 +205,17 @@ export function startTelemetry(options?: {
   const moved = counter("keel.card.moved");
   const commented = counter("keel.comment.created");
   const starred = counter("keel.card.starred");
+  const duplicated = counter("keel.card.duplicated");
+  const duplicateRejected = counter("keel.card.duplicate.rejected");
+  const duplicateFailed = counter("keel.card.duplicate.failed");
   const business = {
     "keel.card.created": created,
     "keel.card.moved": moved,
     "keel.comment.created": commented,
     "keel.card.starred": starred,
+    "keel.card.duplicated": duplicated,
+    "keel.card.duplicate.rejected": duplicateRejected,
+    "keel.card.duplicate.failed": duplicateFailed,
   };
 
   async function flush(): Promise<void> {
@@ -211,7 +228,15 @@ export function startTelemetry(options?: {
   }
 
   return {
-    async record(signal) {
+    async record(signal, status?: number) {
+      if (typeof signal === "string") {
+        business[signal].add(1, {
+          "http.route": "/cards/:id/duplicate",
+          "http.request.method": "POST",
+          "http.response.status_code": status ?? 0,
+        });
+        return;
+      }
       const attributes = signalAttributes(signal);
       const started = Date.now() - signal.durationMs;
       const span = tracer.startSpan(signal.route, { startTime: started, attributes });
@@ -228,6 +253,9 @@ export function startTelemetry(options?: {
       if (signal.business === "keel.card.moved" && signal.status === 200) business[signal.business].add(1, attributes);
       if (signal.business === "keel.comment.created" && signal.status === 201) business[signal.business].add(1, attributes);
       if (signal.business === "keel.card.starred" && signal.status === 201) business[signal.business].add(1, attributes);
+      if (signal.business === "keel.card.duplicated" && signal.status === 201) business[signal.business].add(1, attributes);
+      if (signal.business === "keel.card.duplicate.rejected" && signal.status >= 400 && signal.status < 500) business[signal.business].add(1, attributes);
+      if (signal.business === "keel.card.duplicate.failed" && signal.status >= 500) business[signal.business].add(1, attributes);
       await flush();
     },
     flush,

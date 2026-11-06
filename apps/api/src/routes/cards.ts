@@ -3,6 +3,7 @@ import type { Context } from "hono";
 import { Hono } from "hono";
 import type pg from "pg";
 import type { Card } from "@keel/contracts/board";
+import type { Telemetry } from "@keel/otel";
 import type { User } from "@keel/contracts/session";
 import {
   cardDetailResponse,
@@ -16,6 +17,7 @@ import {
   searchResponse,
 } from "@keel/contracts/writes";
 import { currentUser } from "../auth.ts";
+import { cardDuplicateEnabled, recordDuplicate } from "../card-duplicate.ts";
 import { sharesTeam, teamSharedMovesEnabled } from "../team-moves.ts";
 import { CARD_SELECT, mapCard, mapComment, type CardRow, type CommentRow } from "../card-row.ts";
 import { withTx } from "../db/tx.ts";
@@ -144,7 +146,7 @@ async function placeInColumn(client: pg.PoolClient, column: string, movingId: st
   return { position: (existing.rows.length + 1) * 1024, shiftedIds };
 }
 
-export function cardRoutes(pool: pg.Pool): Hono {
+export function cardRoutes(pool: pg.Pool, telemetry: Telemetry): Hono {
   const app = new Hono();
 
   app.post("/cards", async (c) => {
@@ -203,6 +205,76 @@ export function cardRoutes(pool: pg.Pool): Hono {
     c.set("keelBusiness", "keel.card.created");
     if (result.kind === "replay") c.header("x-keel-idempotent", "replay");
     return c.json(result.body, 201);
+  });
+
+  app.post("/cards/:id/duplicate", async (c) => {
+    const user = await currentUser(pool, c);
+    if (!user) return c.json(UNAUTHENTICATED, 401);
+    const origin = badOrigin(c);
+    if (origin) return origin;
+    if (!(await cardDuplicateEnabled(user.id))) return c.json(NOT_FOUND, 404);
+    const key = c.req.header("idempotency-key")?.trim() ?? "";
+    if (!key) {
+      await recordDuplicate(telemetry, "rejected", 400);
+      return c.json(INVALID_BODY, 400);
+    }
+    const id = c.req.param("id");
+    const requestHash = hashBody({ duplicateOf: id });
+    try {
+      const result = await withTx(pool, async (client) => {
+        if (!(await lockBoard(client))) return { kind: "missing" as const };
+        const prior = await savedIdempotency(client, key, user.id, requestHash);
+        if (prior && "conflict" in prior) return { kind: "conflict" as const };
+        if (prior && "replay" in prior) return { kind: "replay" as const, body: prior.replay.response_json };
+        const source = await readCard(client, id);
+        if (!source) return { kind: "missing" as const };
+        if (!canEdit(user, source.author_id)) return { kind: "forbidden" as const };
+        const version = await bumpRevision(client);
+        const placed = await placeInColumn(client, source.column, null);
+        const now = new Date();
+        for (const shift of placed.shiftedIds) {
+          await client.query("UPDATE cards SET position = $1, version = $2, updated_at = $3 WHERE id = $4", [
+            shift.position,
+            version,
+            now,
+            shift.id,
+          ]);
+        }
+        const title = `Copy of ${source.title}`.slice(0, 200);
+        const inserted = await client.query<CardRow>(
+          `INSERT INTO cards (id, board_id, title, "column", position, author_id, version, created_at, updated_at)
+           VALUES ($1, 'board_launch', $2, $3, $4, $5, $6, $7, $7)
+           RETURNING ${CARD_SELECT}`,
+          [newId("card_"), title, source.column, placed.position, user.id, version, now],
+        );
+        const envelope = cardEnvelope.parse({ card: mapCard(inserted.rows[0]) });
+        await remember(client, key, user.id, requestHash, envelope);
+        return { kind: "created" as const, body: envelope };
+      });
+      if (result.kind === "conflict") {
+        await recordDuplicate(telemetry, "rejected", 409);
+        return c.json({ error: { code: "conflict", message: "This idempotency key was already used." } }, 409);
+      }
+      if (result.kind === "missing") {
+        await recordDuplicate(telemetry, "rejected", 404);
+        return c.json(NOT_FOUND, 404);
+      }
+      if (result.kind === "forbidden") {
+        await recordDuplicate(telemetry, "rejected", 403);
+        return c.json({ error: { code: "forbidden", message: "You cannot duplicate this card." } }, 403);
+      }
+      if (consumeFault(c.req.header("x-keel-fault"))) {
+        await recordDuplicate(telemetry, "failed", 500);
+        throw new Error("keel fault");
+      }
+      if (result.kind === "created") await recordDuplicate(telemetry, "duplicated", 201);
+      if (result.kind === "replay") c.header("x-keel-idempotent", "replay");
+      return c.json(result.body, 201);
+    } catch (error) {
+      if (error instanceof Error && error.message === "keel fault") throw error;
+      await recordDuplicate(telemetry, "failed", 500);
+      throw error;
+    }
   });
 
   app.patch("/cards/:id", async (c) => {

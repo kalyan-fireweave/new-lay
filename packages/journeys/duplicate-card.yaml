@@ -1,0 +1,44 @@
+id: duplicate-card
+title: Duplicate a card
+feature: cards.duplicate
+actor: grace
+actors: [member, owner]
+metrics: [keel.card.duplicated]
+steps:
+  - id: sign-in
+    ui:
+      - { goto: /sign-in }
+      - { see: Sign in }
+      - { fill: { label: Email, text: grace@keel.test } }
+      - { fill: { label: Password, text: keel-local-only } }
+      - { click: Sign in }
+      - { see: Launch }
+    api:
+      method: POST
+      path: /session
+      body:
+        email: grace@keel.test
+        password: keel-local-only
+      expect: 201
+    thinkMs: { min: 200, max: 600 }
+  - id: open-card
+    ui:
+      - { goto: /boards/launch }
+      - { see: Pin the ports }
+      - { click: Pin the ports }
+      - { see: Duplicate }
+    api:
+      method: GET
+      path: /cards/card_02
+      expect: 200
+    thinkMs: { min: 200, max: 600 }
+  - id: duplicate
+    ui:
+      - { click: Duplicate }
+      - { see: Copy of Pin the ports }
+    api:
+      method: POST
+      path: /cards/card_02/duplicate
+      body: {}
+      expect: 201
+    thinkMs: { min: 200, max: 800 }
