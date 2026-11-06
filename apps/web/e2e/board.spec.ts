@@ -38,6 +38,11 @@ async function resetBoard() {
   const db = new pg.Client({ connectionString: process.env.DATABASE_URL });
   await db.connect();
   try {
+    const teams = await db.query("SELECT to_regclass('public.teams') AS name");
+    if (teams.rows[0]?.name) {
+      await db.query("DELETE FROM team_members");
+      await db.query("DELETE FROM teams");
+    }
     await db.query("DELETE FROM comments");
     await db.query("DELETE FROM idempotency_keys");
     await db.query("DELETE FROM cards");

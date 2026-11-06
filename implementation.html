@@ -516,11 +516,13 @@ packages/contracts/src/board.ts</code></pre>
       <tr><td>Read the board, open a card, search</td><td>yes</td><td>yes</td><td>yes</td></tr>
       <tr><td>Create a card</td><td>yes</td><td>yes</td><td>403</td></tr>
       <tr><td>Edit or move a card they authored</td><td>yes</td><td>yes</td><td>403</td></tr>
-      <tr><td>Edit or move someone else’s card</td><td>yes</td><td>403</td><td>403</td></tr>
+      <tr><td>Edit someone else’s card</td><td>yes</td><td>403</td><td>403</td></tr>
+      <tr><td>Move someone else’s card</td><td>yes</td><td>403 unless they share a team with the author</td><td>403 unless they share a team with the author</td></tr>
       <tr><td>Comment on any card</td><td>yes</td><td>yes</td><td>403</td></tr>
     </tbody>
   </table>
   <p>A refused write does not change <code>revision</code>, <code>version</code>, or any row.</p>
+  <p>The board owner can create a team and add people to it. A person on a team can move a card whose author is on that same team. Changing the title still follows the edit row. The seeded cast shares no team, so Grace still cannot move Ada’s card and Linus still cannot move one.</p>
 
   <h3>Revision rules</h3>
   <p>A successful create, move, title edit, or comment runs in one transaction. It increments <code>boards.revision</code> by 1 and sets the touched card’s <code>version</code>, and the new comment’s <code>version</code> when there is one, to that new revision. Positions are integers. A create uses <code>max(position) + 1024</code> in the target column, or 1024 when the column is empty. A move between two neighbors uses the integer midpoint. When the gap is 1, the handler renumbers that column to 1024, 2048, 3072 and returns every renumbered card in <code>shifted</code>.</p>

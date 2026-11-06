@@ -26,6 +26,8 @@ a { color: inherit; }
 
 button, .linkish { cursor: pointer; }
 
+button:disabled { opacity: 0.45; cursor: not-allowed; }
+
 .app { min-height: 100vh; }
 
 .top {
@@ -95,7 +97,7 @@ label {
   font-weight: 650;
 }
 
-.search input, .gate input, .composer input, .drawer input, .drawer textarea {
+.search input, .gate input, .composer input, .drawer input, .drawer textarea, .teams input {
   width: 100%;
   border: 1px solid var(--line);
   background: #fff;
@@ -164,7 +166,7 @@ input:focus, textarea:focus, button:focus-visible, a:focus-visible {
   color: var(--accent);
 }
 
-.gate h1, .board-head h1, .search-page h1 {
+.gate h1, .board-head h1, .search-page h1, .teams h1 {
   margin: 0;
   font-size: 32px;
   letter-spacing: -0.04em;
@@ -292,10 +294,63 @@ button, .linkish {
 .results { list-style: none; padding: 0; display: grid; gap: 8px; }
 .results a { background: var(--panel); border: 1px solid var(--line); }
 
+.team-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.team-panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 16px;
+  display: grid;
+  gap: 12px;
+}
+
+.team-panel h2 {
+  margin: 0;
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.team-choices { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.team-choice { display: inline-flex; align-items: center; gap: 8px; }
+
+.team-choice[aria-pressed="true"] { border-color: var(--accent); }
+
+.person-list, .member-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.person {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+}
+
+.person span { display: grid; gap: 2px; flex: 1; min-width: 0; }
+
+.person small, .role { color: var(--muted); font-weight: 650; }
+
+.person, .team-choice { scroll-margin-top: 120px; }
+
 @media (max-width: 800px) {
   .top, .board-head { flex-wrap: wrap; }
   .who { margin-left: 0; }
-  .columns, .board-layout { grid-template-columns: 1fr; }
+  .columns, .board-layout, .team-layout { grid-template-columns: 1fr; }
   .search, .composer { width: 100%; min-width: 0; }
   .drawer { position: static; }
 }
