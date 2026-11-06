@@ -1,5 +1,15 @@
 # Keel
 
+<!-- fireweave:begin role=claude-entry format=2 sha256=044ba316c03ebeb94676dcd2648240ad599161c1634bc1389dd2560ff97e93d4 -->
+## FireWeave
+
+@.fireweave/agents-core.md
+
+Claude Code: there is no ship command; safe-rollout has been removed. Run FireWeave's tools as `fw tool …` in the shell.
+
+If FireWeave's rollout contract is not in your context (for example, Claude Code was started in a subdirectory), Read the repository-root `AGENTS.md` before changing code.
+<!-- fireweave:end role=claude-entry -->
+
 Keel is a client-only team board. Client docs and product code use Keel words: board, card, journey, run, application account, infrastructure account. The application account is the product. The infrastructure account is the machines. A finished export is a run id present in the application account and absent from the infrastructure account.
 
 Keep these words out of client docs and product code: FireWeave, Oodle, signal-bench, bindings, capability ids.

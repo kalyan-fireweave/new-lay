@@ -1,3 +1,4 @@
+import "./fireweave/start"; // FireWeave: must stay the first import
 import path from "node:path";
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";

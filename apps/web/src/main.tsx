@@ -1,3 +1,4 @@
+import { ready } from "./fireweave/start"; // FireWeave: must stay the first import
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { RouterProvider } from "react-router";
@@ -10,8 +11,10 @@ document.documentElement.dataset.build = buildStamp;
 
 const root = document.getElementById("root");
 if (!root) throw new Error("Missing #root");
-createRoot(root).render(
-  <StrictMode>
-    <RouterProvider router={router} />
-  </StrictMode>,
-);
+void ready.then(() => {
+  createRoot(root).render(
+    <StrictMode>
+      <RouterProvider router={router} />
+    </StrictMode>,
+  );
+});
