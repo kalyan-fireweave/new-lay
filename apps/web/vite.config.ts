@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
+import { fireweave } from "@fireweaveai/web-sdk/vite";
 
 function apiOrigin(): string {
   try {
@@ -26,7 +27,7 @@ const target = apiOrigin();
 
 export default defineConfig({
   appType: "spa",
-  plugins: [react()],
+  plugins: [react(), fireweave()],
   server: {
     host: "127.0.0.1",
     port: 4100,

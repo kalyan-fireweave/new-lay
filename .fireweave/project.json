@@ -1,0 +1,47 @@
+{
+  "defaultEnvironment": "production",
+  "orgId": "hcWR8Q9ZFMaWSaWbwqdPYC2i2zY2fWna",
+  "projectId": "51958524-2b4d-404e-a5c1-ac836d671e90",
+  "projectName": "new-lay",
+  "rolloutReady": {
+    "attestUrl": "https://staging-app-server.fireweave.ai",
+    "rolloutCredentialEnv": "FIREWEAVE_KEY"
+  },
+  "server": {
+    "url": "https://staging-app-server.fireweave.ai"
+  },
+  "surfaces": [
+    {
+      "entrypoint": "apps/api/src/app.ts",
+      "harnessKind": "package",
+      "metricsClient": "otel-sdk",
+      "path": "apps/api",
+      "rolloutCredentialEnv": "FIREWEAVE_KEY",
+      "surface": "ts-server",
+      "surfaceId": "sfc_01M6RCFHYJH31D1NYJ7GQTMCDM",
+      "trackerPath": ".fireweave/stamps.ts",
+      "sdk": {
+        "name": "@fireweaveai/server-sdk",
+        "version": "3.0.0-rc.1",
+        "channel": "staging"
+      }
+    },
+    {
+      "entrypoint": "apps/web/src/main.tsx",
+      "harnessKind": "package",
+      "metricsClient": "otel-sdk",
+      "path": "apps/web",
+      "rolloutCredentialEnv": "FIREWEAVE_BROWSER_KEY",
+      "startProfile": "client",
+      "surface": "web",
+      "surfaceId": "sfc_01M6RCFHYJH31D1NYJ7GQTMCDN",
+      "trackerPath": ".fireweave/stamps.ts",
+      "sdk": {
+        "name": "@fireweaveai/web-sdk",
+        "version": "3.0.0-rc.1",
+        "channel": "staging"
+      }
+    }
+  ],
+  "version": 2
+}

@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(fw tool *)",
+      "Bash(fw status *)",
+      "Bash(fw sync *)",
+      "Edit(/.fireweave/tmp/**)"
+    ]
+  }
+}

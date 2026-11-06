@@ -1,0 +1,8 @@
+---
+description: FireWeave rollout contract (in AGENTS.md)
+alwaysApply: true
+---
+
+<!-- fireweave:begin role=cursor-entry format=2 sha256=bd4d94da47d9bcfb0c7d9cd4248c752bce57707a90b3e57a18a0315c110226a3 -->
+FireWeave's rollout contract is in the repository-root `AGENTS.md`: read it before you change behaviour. Ship = a pull request into an environment branch; merging registers the rollout. There is no ship command; safe-rollout has been removed.
+<!-- fireweave:end role=cursor-entry -->

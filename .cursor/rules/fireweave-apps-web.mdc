@@ -1,0 +1,15 @@
+---
+description:
+globs: apps/web/**
+alwaysApply: false
+---
+
+<!-- fireweave:begin role=app-rule format=2 sha256=1df80283894b83166dc0deb3d9148da185f39f4585719830a9617b476f1b114e -->
+## FireWeave — `apps/web` (web)
+
+FireWeave's rollout contract is in the repository-root `AGENTS.md`: Read it before you change behaviour in this app if it is not in your context.
+
+- Control points here: `fw.controlPoints.getBooleanValue('<key>', false)` from `@fireweaveai/web-sdk/start` (no per-call context); local values in `src/fireweave/control-points.ts`
+- Before you write an emit call, read `.fireweave/instructions/metrics-apps-web.md`.
+- Start options and overrides: `.fireweave/instructions/sdk-web.md`.
+<!-- fireweave:end role=app-rule -->

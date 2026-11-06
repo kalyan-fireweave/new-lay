@@ -1,0 +1,15 @@
+---
+description:
+globs: apps/api/**
+alwaysApply: false
+---
+
+<!-- fireweave:begin role=app-rule format=2 sha256=ba14c1948e973b067f80e8fa5cd63a527134cdb8a05677a1a1aef119059c85e7 -->
+## FireWeave — `apps/api` (ts-server)
+
+FireWeave's rollout contract is in the repository-root `AGENTS.md`: Read it before you change behaviour in this app if it is not in your context.
+
+- Control points here: `await fw.controlPoints.getBooleanValue('<key>', false, { targetingKey: user.id })` from `@fireweaveai/server-sdk/start`; local values in `src/fireweave/control-points.ts`
+- Before you write an emit call, read `.fireweave/instructions/metrics-apps-api.md`.
+- Start options and overrides: `.fireweave/instructions/sdk-ts-server.md`.
+<!-- fireweave:end role=app-rule -->
