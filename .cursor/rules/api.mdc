@@ -8,7 +8,7 @@ alwaysApply: false
 
 Every error is `{ error: { code, message } }`. Zod bodies are `.strict()`. A missing or non-digit `If-Match` on PATCH is `400 invalid_body` before authorization.
 
-A board write locks `board_launch`, increments `boards.revision` by 1, and sets the touched card version to that revision. POST `/cards`, POST `/cards/:id/comments`, and POST `/cards/:id/stars` require `Idempotency-Key`. The same key, user, and body returns the stored response with `x-keel-idempotent: replay`. The same key and a different body returns 409.
+A board write locks `board_launch`, increments `boards.revision` by 1, and sets the touched card version to that revision. POST `/cards`, POST `/cards/:id/duplicate`, POST `/cards/:id/comments`, and POST `/cards/:id/stars` require `Idempotency-Key`. The same key, user, and body returns the stored response with `x-keel-idempotent: replay`. The same key and a different body returns 409.
 
 Starring does not change `boards.revision`. The first insert into `card_stars` returns 201 and emits `keel.card.starred`. A later star with a new key returns 201 and emits nothing.
 

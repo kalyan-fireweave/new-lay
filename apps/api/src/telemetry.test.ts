@@ -34,6 +34,7 @@ function runSeed() {
 
 async function resetBoard(db: pg.Client) {
   await db.query("DELETE FROM comments");
+  await db.query("DELETE FROM card_stars");
   await db.query("DELETE FROM idempotency_keys");
   await db.query("DELETE FROM cards");
   await db.query("UPDATE boards SET revision = 1 WHERE id = 'board_launch'");
@@ -182,4 +183,71 @@ it("throws once after the card is saved and then accepts the header", async () =
     body: JSON.stringify({ boardId: "launch", title: "Fault twice", column: "todo" }),
   });
   expect(second.status).toBe(201);
+});
+
+function resourceSignal(memory: MemoryExporters, name: string): string | undefined {
+  for (const resource of memory.metrics.getMetrics()) {
+    const carries = resource.scopeMetrics.some((scope) => scope.metrics.some((metric) => metric.descriptor.name === name));
+    if (!carries) continue;
+    const attributes = resource.resource.attributes;
+    const signal = attributes["keel.signal"];
+    return typeof signal === "string" ? signal : undefined;
+  }
+  return undefined;
+}
+
+it("counts a copy on the application signal and leaves a refused copy off that counter", async () => {
+  const { app, memory } = open();
+  const grace = await signIn(app, "grace@keel.test");
+  const copied = await app.request("/cards/card_02/duplicate", {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      cookie: `keel_session=${grace}`,
+      "idempotency-key": randomUUID(),
+    },
+    body: "{}",
+  });
+  expect(copied.status).toBe(201);
+  const body = (await copied.json()) as { card: { title: string } };
+  expect(body.card.title).toBe("Copy of Pin the ports");
+  expect(Math.max(...points(memory, "keel.card.duplicated").map((point) => point.value))).toBe(1);
+  expect(resourceSignal(memory, "keel.card.duplicated")).toBe("app");
+  expect(points(memory, "http.server.request.duration").some((point) => point.attributes["http.route"] === "/cards/:id/duplicate")).toBe(true);
+
+  const linus = await signIn(app, "linus@keel.test");
+  const refused = await app.request("/cards/card_01/duplicate", {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      cookie: `keel_session=${linus}`,
+      "idempotency-key": randomUUID(),
+    },
+    body: "{}",
+  });
+  expect(refused.status).toBe(403);
+  expect(points(memory, "keel.card.duplicate.rejected").some((point) => point.attributes["http.response.status_code"] === 403 && point.value >= 1)).toBe(true);
+  expect(resourceSignal(memory, "keel.card.duplicate.rejected")).toBe("app");
+  expect(Math.max(...points(memory, "keel.card.duplicated").map((point) => point.value))).toBe(1);
+  expect(points(memory, "keel.card.duplicate.failed").reduce((sum, point) => sum + point.value, 0)).toBe(0);
+});
+
+it("counts a duplicate that throws as a failure and not as a copy", async () => {
+  const { app, memory } = open();
+  const token = await signIn(app, "grace@keel.test");
+  const response = await app.request("/cards/card_02/duplicate", {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      cookie: `keel_session=${token}`,
+      "idempotency-key": randomUUID(),
+      "x-keel-fault": "once",
+    },
+    body: "{}",
+  });
+  expect(response.status).toBe(500);
+  expect(Math.max(0, ...points(memory, "keel.card.duplicate.failed").map((point) => point.value))).toBe(1);
+  expect(points(memory, "keel.card.duplicated").reduce((sum, point) => sum + point.value, 0)).toBe(0);
+  expect(points(memory, "http.server.requests").some((point) => point.attributes["http.route"] === "/cards/:id/duplicate" && point.attributes["http.response.status_code"] === 500)).toBe(true);
+  expect(resourceSignal(memory, "keel.card.duplicate.failed")).toBe("app");
 });

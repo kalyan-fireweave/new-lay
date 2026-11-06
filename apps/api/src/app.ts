@@ -1,4 +1,4 @@
-import "./fireweave/start"; // FireWeave: must stay the first import
+import "./fireweave/start.ts"; // FireWeave: must stay the first import
 import path from "node:path";
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";
@@ -21,7 +21,7 @@ export function createApp(pool: pg.Pool, telemetry: Telemetry = startTelemetry()
   app.route("/", otelRoutes());
   app.route("/", sessionRoutes(pool));
   app.route("/", boardRoutes(pool));
-  app.route("/", cardRoutes(pool));
+  app.route("/", cardRoutes(pool, telemetry));
   app.onError((error, c) => {
     console.error(error instanceof Error ? error.message : error);
     return c.json({ error: { code: "internal", message: "The request failed." } }, 500);

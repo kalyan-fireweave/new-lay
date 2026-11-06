@@ -69,4 +69,10 @@ export const api = {
       headers: { "idempotency-key": key },
     }),
   search: (query: string) => request<SearchResult>(`/search?q=${encodeURIComponent(query)}`),
+  duplicateCard: (cardId: string, key: string) =>
+    request<{ card: Card }>(`/cards/${cardId}/duplicate`, {
+      method: "POST",
+      body: JSON.stringify({}),
+      headers: { "idempotency-key": key },
+    }),
 };
