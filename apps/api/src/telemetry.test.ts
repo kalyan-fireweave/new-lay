@@ -190,6 +190,90 @@ it("throws once after the card is saved and then accepts the header", async () =
   expect(second.status).toBe(201);
 });
 
+it("records a pulse on the application account and posts the machine count without a run id", async () => {
+  const { app, memory } = open();
+  const token = await signIn(app, "grace@keel.test");
+  const bodies: string[] = [];
+  const original = globalThis.fetch;
+  globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+    if (String(input).endsWith("/v1/metrics")) {
+      bodies.push(String(init?.body ?? ""));
+      return new Response(null, { status: 200 });
+    }
+    return original(input, init);
+  }) as typeof fetch;
+  try {
+    const response = await app.request("/pulse", {
+      method: "POST",
+      headers: { cookie: `keel_session=${token}`, "x-keel-run-id": "run_pulse" },
+    });
+    expect(response.status).toBe(201);
+  } finally {
+    globalThis.fetch = original;
+  }
+  expect(bodies).toHaveLength(1);
+  const posted = JSON.parse(bodies[0]) as {
+    resourceMetrics: { resource: { attributes: { key: string; value: { stringValue: string } }[] } }[];
+  };
+  const signal = posted.resourceMetrics[0]?.resource.attributes.find((item) => item.key === "keel.signal");
+  expect(signal?.value.stringValue).toBe("infra");
+  expect(bodies[0].includes("run_pulse")).toBe(false);
+  expect(bodies[0].includes("keel.run_id")).toBe(false);
+  const recorded = points(memory, "keel.pulse.recorded");
+  expect(Math.max(...recorded.map((point) => point.value))).toBe(1);
+  expect(recorded.some((point) => point.attributes["keel.run_id"] === "run_pulse")).toBe(true);
+  expect(resourceSignal(memory, "keel.pulse.recorded")).toBe("app");
+});
+
+it("refuses a pulse from a viewer and does not post a machine count", async () => {
+  const { app, memory } = open();
+  const token = await signIn(app, "linus@keel.test");
+  const original = globalThis.fetch;
+  let posted = 0;
+  globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+    if (String(input).endsWith("/v1/metrics")) {
+      posted += 1;
+      return new Response(null, { status: 200 });
+    }
+    return original(input, init);
+  }) as typeof fetch;
+  try {
+    const response = await app.request("/pulse", {
+      method: "POST",
+      headers: { cookie: `keel_session=${token}` },
+    });
+    expect(response.status).toBe(403);
+  } finally {
+    globalThis.fetch = original;
+  }
+  expect(posted).toBe(0);
+  const rejected = points(memory, "keel.pulse.rejected");
+  expect(rejected.some((point) => point.attributes["http.response.status_code"] === 403)).toBe(true);
+  expect(points(memory, "keel.pulse.recorded").reduce((sum, point) => sum + point.value, 0)).toBe(0);
+});
+
+it("counts a failed pulse when the infrastructure account refuses the machine count", async () => {
+  const { app, memory } = open();
+  const token = await signIn(app, "ada@keel.test");
+  const original = globalThis.fetch;
+  globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+    if (String(input).endsWith("/v1/metrics")) return new Response(null, { status: 503 });
+    return original(input, init);
+  }) as typeof fetch;
+  try {
+    const response = await app.request("/pulse", {
+      method: "POST",
+      headers: { cookie: `keel_session=${token}`, "x-keel-run-id": "run_failed" },
+    });
+    expect(response.status).toBe(502);
+  } finally {
+    globalThis.fetch = original;
+  }
+  const failed = points(memory, "keel.pulse.failed");
+  expect(Math.max(...failed.map((point) => point.value))).toBe(1);
+  expect(points(memory, "keel.pulse.recorded").reduce((sum, point) => sum + point.value, 0)).toBe(0);
+});
+
 function resourceSignal(memory: MemoryExporters, name: string): string | undefined {
   for (const resource of memory.metrics.getMetrics()) {
     const carries = resource.scopeMetrics.some((scope) => scope.metrics.some((metric) => metric.descriptor.name === name));

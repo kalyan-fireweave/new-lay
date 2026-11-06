@@ -1,0 +1,32 @@
+id: forbidden-pulse
+title: A viewer cannot record a pulse
+feature: board.pulse
+actor: linus
+actors: [viewer]
+metrics: [keel.pulse.rejected]
+steps:
+  - id: sign-in
+    ui:
+      - { goto: /sign-in }
+      - { see: Sign in }
+      - { fill: { label: Email, text: linus@keel.test } }
+      - { fill: { label: Password, text: keel-local-only } }
+      - { click: Sign in }
+      - { see: Launch }
+    api:
+      method: POST
+      path: /session
+      body:
+        email: linus@keel.test
+        password: keel-local-only
+      expect: 201
+    thinkMs: { min: 200, max: 600 }
+  - id: refuse
+    ui:
+      - { goto: /boards/launch }
+      - { see: Launch }
+    api:
+      method: POST
+      path: /pulse
+      expect: 403
+    thinkMs: { min: 200, max: 600 }

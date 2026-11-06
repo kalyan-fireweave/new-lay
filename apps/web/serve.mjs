@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "dist");
 const apiOrigin = process.env.KEEL_API_UPSTREAM ?? process.env.KEEL_API_ORIGIN ?? "http://127.0.0.1:4101";
 const port = Number(process.env.KEEL_LISTEN_PORT || new URL(process.env.KEEL_WEB_ORIGIN ?? "http://127.0.0.1:4100").port || 4100);
-const proxies = ["/session", "/boards", "/cards", "/search", "/teams", "/users", "/health", "/ready", "/otel"];
+const proxies = ["/session", "/boards", "/cards", "/search", "/teams", "/users", "/health", "/ready", "/otel", "/pulse"];
 const types = {
   ".html": "text/html; charset=utf-8",
   ".js": "text/javascript; charset=utf-8",

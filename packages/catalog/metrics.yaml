@@ -36,3 +36,19 @@ metrics:
     kind: counter
     signal: app
     description: Duplicate requests that failed inside the API.
+  - name: keel.pulse.recorded
+    kind: counter
+    signal: app
+    description: Pulses saved on the application account by POST /pulse.
+  - name: keel.pulse.rejected
+    kind: counter
+    signal: app
+    description: Pulse requests the API refused.
+  - name: keel.pulse.failed
+    kind: counter
+    signal: app
+    description: Pulse requests that failed before the machine count was saved.
+  - name: keel.pulse.machines
+    kind: counter
+    signal: infra
+    description: Pulses saved on the infrastructure account, with no run id.

@@ -109,6 +109,7 @@ export function metricForStep(method: string, stepPath: string): string | null {
   if (method === "POST" && stepPath.endsWith("/comments")) return "keel.comment.created";
   if (method === "POST" && stepPath.endsWith("/stars")) return "keel.card.starred";
   if (method === "POST" && stepPath.endsWith("/duplicate")) return "keel.card.duplicated";
+  if (method === "POST" && stepPath === "/pulse") return "keel.pulse.recorded";
   if (method === "PATCH" && stepPath.startsWith("/cards/")) return "keel.card.moved";
   return null;
 }

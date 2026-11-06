@@ -42,6 +42,7 @@ export default defineConfig({
       "/health": proxy(target),
       "/ready": proxy(target),
       "/otel": proxy(target),
+      "/pulse": proxy(target),
     },
   },
   test: {
