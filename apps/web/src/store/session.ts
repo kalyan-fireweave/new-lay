@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from "react";
 import { api, ApiError } from "../api.ts";
+import { forgetPerson, rememberPerson } from "../fireweave/identity.ts";
 
 export type User = { id: string; email: string; name: string; role: "owner" | "member" | "viewer" };
 
@@ -20,6 +21,7 @@ async function load(): Promise<void> {
   try {
     const body = await api.session();
     session = { status: "user", user: body.user };
+    rememberPerson(body.user.id, body.user.role);
   } catch (error) {
     if (error instanceof ApiError && error.status === 401) session = { status: "anonymous" };
     else throw error;
@@ -44,10 +46,12 @@ export const sessionStore = {
   },
   setUser(user: User): void {
     session = { status: "user", user };
+    rememberPerson(user.id, user.role);
     emit();
   },
   clear(): void {
     session = { status: "anonymous" };
+    forgetPerson();
     emit();
   },
 };

@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router";
 import { ApiError, api } from "../api.ts";
 import { boardStore, useBoard, type ColumnName } from "../store/board.ts";
 import { commentStore, useComments } from "../store/comments.ts";
+import { useSession } from "../store/session.ts";
 
 const labels: Record<ColumnName, string> = { todo: "Todo", doing: "Doing", done: "Done" };
 
@@ -11,6 +12,8 @@ export function Drawer() {
   const snapshot = useBoard(boardId);
   const thread = useComments(cardId);
   const card = snapshot?.cardsById[cardId];
+  const session = useSession();
+  const editor = session.status === "user" ? session.user : null;
   const [title, setTitle] = useState(card?.title ?? "");
   const [comment, setComment] = useState("");
   const [error, setError] = useState("");
@@ -23,6 +26,8 @@ export function Drawer() {
   }, [card?.title]);
 
   if (!card) return <aside className="drawer">That card is not on this board.</aside>;
+
+  const canEditTitle = editor?.role === "owner" || (editor?.role === "member" && editor.id === card.authorId);
 
   async function saveTitle() {
     const current = boardStore.get(boardId)?.cardsById[cardId];
@@ -86,7 +91,14 @@ export function Drawer() {
       <h2>{card.title}</h2>
       <label>
         Title
-        <input value={title} onChange={(event) => setTitle(event.target.value)} onBlur={() => void saveTitle()} />
+        <input
+          value={title}
+          readOnly={!canEditTitle}
+          onChange={(event) => setTitle(event.target.value)}
+          onBlur={() => {
+            if (canEditTitle) void saveTitle();
+          }}
+        />
       </label>
       <button className="ghost" type="button" onClick={() => void onStar()}>{starred ? "Starred" : "Star"}</button>
       {error ? <p className="alert" role="alert">{error}</p> : null}

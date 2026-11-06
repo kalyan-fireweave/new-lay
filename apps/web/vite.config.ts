@@ -37,6 +37,8 @@ export default defineConfig({
       "/boards": proxy(target),
       "/cards": proxy(target),
       "/search": proxy(target),
+      "/teams": proxy(target),
+      "/users": proxy(target),
       "/health": proxy(target),
       "/ready": proxy(target),
       "/otel": proxy(target),

@@ -16,6 +16,7 @@ import {
   searchResponse,
 } from "@keel/contracts/writes";
 import { currentUser } from "../auth.ts";
+import { sharesTeam, teamSharedMovesEnabled } from "../team-moves.ts";
 import { CARD_SELECT, mapCard, mapComment, type CardRow, type CommentRow } from "../card-row.ts";
 import { withTx } from "../db/tx.ts";
 import { consumeFault } from "../fault.ts";
@@ -231,11 +232,18 @@ export function cardRoutes(pool: pg.Pool): Hono {
       );
       const row = current.rows[0];
       if (!row) return { kind: "missing" as const };
-      if (!canEdit(user, row.author_id)) return { kind: "forbidden" as const };
       const card = mapCard(row);
       if (card.version !== ifMatch) return { kind: "stale" as const, card };
       const column = parsed.data.column ?? card.column;
       const moved = column !== card.column;
+      const nextTitle = title ?? card.title;
+      const authored = canEdit(user, row.author_id);
+      if ((nextTitle !== card.title || !moved) && !authored) return { kind: "forbidden" as const };
+      if (!authored) {
+        const shared =
+          moved && (await teamSharedMovesEnabled(user.id)) && (await sharesTeam(client, user.id, row.author_id));
+        if (!shared) return { kind: "forbidden" as const };
+      }
       const placed = moved ? await placeInColumn(client, column, id) : { position: card.position, shiftedIds: [] };
       const version = await bumpRevision(client);
       const now = new Date();

@@ -4,6 +4,7 @@ import { BoardPage } from "./screens/board.tsx";
 import { Drawer } from "./screens/drawer.tsx";
 import { SearchPage } from "./screens/search.tsx";
 import { Shell } from "./screens/shell.tsx";
+import { TeamsPage } from "./screens/teams.tsx";
 import { SignIn } from "./screens/sign-in.tsx";
 import { SignUp } from "./screens/sign-up.tsx";
 import { boardStore, snapshotFromCards } from "./store/board.ts";
@@ -105,6 +106,7 @@ export const router = createBrowserRouter([
         ],
       },
       { path: "search", element: <SearchPage /> },
+      { path: "teams", element: <TeamsPage /> },
     ],
   },
 ]);
