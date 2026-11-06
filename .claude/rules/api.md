@@ -16,4 +16,4 @@ Sign-up creates a member and a session. The cookie is `keel_session`. The databa
 
 When `Origin` is present it must be `KEEL_WEB_ORIGIN` or `KEEL_STUDIO_ORIGIN`. A missing `Origin` is allowed.
 
-New ids use a prefix plus a ULID: `card_`, `cmt_`, `ses_`, `run_`. Migrations are `IF NOT EXISTS` files in `apps/api/migrations/`, applied on boot.
+New ids use a prefix plus a ULID: `card_`, `cmt_`, `ses_`, `run_`, `team_`. Migrations are `IF NOT EXISTS` files in `apps/api/migrations/`, applied on boot.

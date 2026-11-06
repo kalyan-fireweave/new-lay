@@ -3,5 +3,6 @@
 import { defineControlPoints } from '@fireweaveai/server-sdk/start';
 
 export const controlPoints = defineControlPoints({
+  "team-shared-moves": { local: true },
   "card-duplicate": { local: true },
 });

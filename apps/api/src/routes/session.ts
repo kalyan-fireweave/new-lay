@@ -4,6 +4,7 @@ import { Hono } from "hono";
 import type pg from "pg";
 import { signInBody, signUpBody, type User } from "@keel/contracts/session";
 import { hashPassword, verifyPassword } from "../db/password.ts";
+import { rememberPerson } from "../fireweave/identity.ts";
 import { newId } from "../ids.ts";
 
 const COOKIE = "keel_session";
@@ -94,6 +95,7 @@ export function sessionRoutes(pool: pg.Pool): Hono {
     const token = newId("ses_");
     await startSession(pool, user.id, token);
     setCookie(c, COOKIE, token, { ...cookieOptions(), maxAge: MAX_AGE });
+    rememberPerson(user.id, user.role);
     return c.json({ user: publicUser(user) }, 201);
   });
 
@@ -121,6 +123,7 @@ export function sessionRoutes(pool: pg.Pool): Hono {
     const token = newId("ses_");
     await startSession(pool, row.id, token);
     setCookie(c, COOKIE, token, { ...cookieOptions(), maxAge: MAX_AGE });
+    rememberPerson(row.id, row.role);
     return c.json({ user: publicUser(row) }, 201);
   });
 

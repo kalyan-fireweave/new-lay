@@ -5,7 +5,8 @@
   "exports": {
     "./session": "./src/session.ts",
     "./board": "./src/board.ts",
-    "./writes": "./src/writes.ts"
+    "./writes": "./src/writes.ts",
+    "./teams": "./src/teams.ts"
   },
   "dependencies": {
     "zod": "^3.25.76"

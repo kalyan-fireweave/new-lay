@@ -33,6 +33,11 @@ function runSeed() {
 }
 
 async function resetBoard(db: pg.Client) {
+  const teams = await db.query<{ name: string | null }>("SELECT to_regclass('public.teams') AS name");
+  if (teams.rows[0]?.name) {
+    await db.query("DELETE FROM team_members");
+    await db.query("DELETE FROM teams");
+  }
   await db.query("DELETE FROM comments");
   await db.query("DELETE FROM card_stars");
   await db.query("DELETE FROM idempotency_keys");

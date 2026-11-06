@@ -1,5 +1,6 @@
 import type { BoardResponse, Card } from "@keel/contracts/board";
 import type { User } from "@keel/contracts/session";
+import type { DirectoryUser, Team } from "@keel/contracts/teams";
 import type { Comment } from "@keel/contracts/writes";
 
 export class ApiError extends Error {
@@ -32,6 +33,7 @@ export type PatchResult = { card: Card; shifted: Card[] };
 export type CommentResult = { comment: Comment; card: Card };
 export type SearchResult = { query: string; cards: Card[] };
 export type Changes = { revision: number; cards: Card[]; comments: Comment[]; removedCardIds: string[] };
+export type { DirectoryUser, Team };
 
 export const api = {
   session: () => request<{ user: User }>("/session"),
@@ -75,4 +77,12 @@ export const api = {
       body: JSON.stringify({}),
       headers: { "idempotency-key": key },
     }),
+  users: () => request<{ users: DirectoryUser[] }>("/users"),
+  teams: () => request<{ teams: Team[] }>("/teams"),
+  createTeam: (name: string) => request<{ team: Team }>("/teams", { method: "POST", body: JSON.stringify({ name }) }),
+  deleteTeam: (teamId: string) => request<null>(`/teams/${teamId}`, { method: "DELETE" }),
+  addMembers: (teamId: string, userIds: string[]) =>
+    request<{ team: Team }>(`/teams/${teamId}/members`, { method: "POST", body: JSON.stringify({ userIds }) }),
+  removeMember: (teamId: string, userId: string) =>
+    request<{ team: Team }>(`/teams/${teamId}/members/${userId}`, { method: "DELETE" }),
 };

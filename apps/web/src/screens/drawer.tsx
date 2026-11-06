@@ -12,6 +12,8 @@ export function Drawer() {
   const snapshot = useBoard(boardId);
   const thread = useComments(cardId);
   const card = snapshot?.cardsById[cardId];
+  const session = useSession();
+  const editor = session.status === "user" ? session.user : null;
   const [title, setTitle] = useState(card?.title ?? "");
   const [comment, setComment] = useState("");
   const [error, setError] = useState("");
@@ -19,8 +21,6 @@ export function Drawer() {
   const keyRef = useRef<string | null>(null);
   const starKey = useRef<string | null>(null);
   const duplicateKey = useRef<string | null>(null);
-  const session = useSession();
-  const user = session.status === "user" ? session.user : null;
 
   useEffect(() => {
     setTitle(card?.title ?? "");
@@ -28,7 +28,8 @@ export function Drawer() {
 
   if (!card) return <aside className="drawer">That card is not on this board.</aside>;
 
-  const canDuplicate = user?.role === "owner" || (user?.role === "member" && user.id === card.authorId);
+  const canEditTitle = editor?.role === "owner" || (editor?.role === "member" && editor.id === card.authorId);
+  const canDuplicate = editor?.role === "owner" || (editor?.role === "member" && editor.id === card.authorId);
 
   async function saveTitle() {
     const current = boardStore.get(boardId)?.cardsById[cardId];
@@ -105,7 +106,14 @@ export function Drawer() {
       <h2>{card.title}</h2>
       <label>
         Title
-        <input value={title} onChange={(event) => setTitle(event.target.value)} onBlur={() => void saveTitle()} />
+        <input
+          value={title}
+          readOnly={!canEditTitle}
+          onChange={(event) => setTitle(event.target.value)}
+          onBlur={() => {
+            if (canEditTitle) void saveTitle();
+          }}
+        />
       </label>
       <button className="ghost" type="button" onClick={() => void onStar()}>{starred ? "Starred" : "Star"}</button>
       {canDuplicate ? <button type="button" onClick={() => void onDuplicate()}>Duplicate</button> : null}
