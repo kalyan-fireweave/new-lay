@@ -2,11 +2,11 @@ import { useEffect, useState, type FormEvent } from "react";
 import { Navigate } from "react-router";
 import { api, type DirectoryUser, type Team } from "../api.ts";
 import { useSession } from "../store/session.ts";
-import { useTeamSharedMoves } from "../team-moves.ts";
+import { refreshTeamDirectory, useTeamDirectory } from "../team-directory.ts";
 
 export function TeamsPage() {
   const session = useSession();
-  const teamMoves = useTeamSharedMoves();
+  const directory = useTeamDirectory();
   const [teams, setTeams] = useState<Team[]>([]);
   const [people, setPeople] = useState<DirectoryUser[]>([]);
   const [selectedId, setSelectedId] = useState("");
@@ -20,7 +20,7 @@ export function TeamsPage() {
   const selected = teams.find((team) => team.id === selectedId) ?? null;
 
   useEffect(() => {
-    if (!user || !teamMoves) return;
+    if (!user || directory.status !== "ready") return;
     let cancel = false;
     void Promise.all([api.teams(), api.users()])
       .then(([teamBody, userBody]) => {
@@ -39,11 +39,11 @@ export function TeamsPage() {
     return () => {
       cancel = true;
     };
-  }, [user, teamMoves]);
+  }, [user, directory.status]);
 
   if (session.status === "anonymous") return <Navigate to="/sign-in" replace />;
-  if (!user) return <p>Loading…</p>;
-  if (!teamMoves) return <p className="lede">Teams are not available.</p>;
+  if (!user || directory.status === "idle") return <p>Loading…</p>;
+  if (directory.status === "closed") return <p className="lede">Teams are not available.</p>;
 
   function personName(id: string): string {
     return people.find((person) => person.id === id)?.name ?? id;
@@ -61,6 +61,7 @@ export function TeamsPage() {
       const body = await api.createTeam(trimmed);
       const next = await api.teams();
       setTeams(next.teams);
+      refreshTeamDirectory();
       setSelectedId(body.team.id);
       setName("");
       setError("");
@@ -74,6 +75,7 @@ export function TeamsPage() {
     try {
       const body = await api.addMembers(selected.id, checked);
       setTeams((current) => current.map((team) => (team.id === body.team.id ? body.team : team)));
+      refreshTeamDirectory();
       setChecked([]);
       setError("");
     } catch (caught) {
@@ -86,6 +88,7 @@ export function TeamsPage() {
     try {
       const body = await api.removeMember(selected.id, userId);
       setTeams((current) => current.map((team) => (team.id === body.team.id ? body.team : team)));
+      refreshTeamDirectory();
       setError("");
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "That person could not be removed.");
@@ -98,6 +101,7 @@ export function TeamsPage() {
       await api.deleteTeam(selected.id);
       const next = teams.filter((team) => team.id !== selected.id);
       setTeams(next);
+      refreshTeamDirectory();
       setSelectedId(next[0]?.id ?? "");
       setError("");
     } catch (caught) {

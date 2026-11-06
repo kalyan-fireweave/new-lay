@@ -4,7 +4,7 @@ import { ApiError, api } from "../api.ts";
 import { boardStore, useBoardState, type Card, type ColumnName } from "../store/board.ts";
 import { commentStore } from "../store/comments.ts";
 import { useSession } from "../store/session.ts";
-import { useTeamSharedMoves } from "../team-moves.ts";
+import { useTeamDirectory } from "../team-directory.ts";
 
 const order: ColumnName[] = ["todo", "doing", "done"];
 const labels: Record<ColumnName, string> = { todo: "Todo", doing: "Doing", done: "Done" };
@@ -21,7 +21,8 @@ export function BoardPage() {
   const [draft, setDraft] = useState("");
   const [error, setError] = useState("");
   const user = session.status === "user" ? session.user : null;
-  const teamMoves = useTeamSharedMoves();
+  const directory = useTeamDirectory();
+  const teamMoves = directory.status === "ready";
   const [peerIds, setPeerIds] = useState<ReadonlySet<string>>(new Set());
 
   useEffect(() => {
@@ -56,21 +57,17 @@ export function BoardPage() {
   }, [boardId]);
 
   useEffect(() => {
-    if (!teamMoves || !user) return;
-    let cancel = false;
-    void api.teams().then((body) => {
-      if (cancel) return;
-      const ids = new Set<string>();
-      for (const team of body.teams) {
-        if (!team.memberIds.includes(user.id)) continue;
-        for (const memberId of team.memberIds) ids.add(memberId);
-      }
-      setPeerIds(ids);
-    }).catch(() => {});
-    return () => {
-      cancel = true;
-    };
-  }, [teamMoves, user]);
+    if (!user || directory.status !== "ready") {
+      setPeerIds(new Set());
+      return;
+    }
+    const ids = new Set<string>();
+    for (const team of directory.teams) {
+      if (!team.memberIds.includes(user.id)) continue;
+      for (const memberId of team.memberIds) ids.add(memberId);
+    }
+    setPeerIds(ids);
+  }, [directory, user]);
 
   if (!snapshot || !user) return <p>Loading the board…</p>;
 

@@ -3,5 +3,5 @@
 import { defineControlPoints } from '@fireweaveai/web-sdk/start';
 
 export const controlPoints = defineControlPoints({
-  "team-shared-moves": { local: true },
+  // 'new-checkout': { local: true },
 });

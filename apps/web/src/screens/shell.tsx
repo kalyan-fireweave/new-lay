@@ -1,7 +1,8 @@
+import { useEffect } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router";
 import { api } from "../api.ts";
 import { sessionStore, useSession } from "../store/session.ts";
-import { useTeamSharedMoves } from "../team-moves.ts";
+import { clearTeamDirectory, refreshTeamDirectory, useTeamDirectory } from "../team-directory.ts";
 import { SearchBox } from "./search.tsx";
 
 export function Shell() {
@@ -9,7 +10,16 @@ export function Shell() {
   const navigate = useNavigate();
   const location = useLocation();
   const gate = location.pathname === "/sign-in" || location.pathname === "/sign-up";
-  const teamMoves = useTeamSharedMoves();
+  const directory = useTeamDirectory();
+  const userId = session.status === "user" ? session.user.id : "";
+
+  useEffect(() => {
+    if (!userId) {
+      clearTeamDirectory();
+      return;
+    }
+    refreshTeamDirectory();
+  }, [userId]);
 
   async function signOut() {
     await api.signOut();
@@ -25,7 +35,7 @@ export function Shell() {
             <span className="brand-mark" aria-hidden="true">K</span>
             Keel
           </Link>
-          {session.status === "user" && teamMoves ? (
+          {session.status === "user" && directory.status === "ready" ? (
             <Link className="ghost linkish" to="/teams">Teams</Link>
           ) : null}
           {session.status === "user" ? (
