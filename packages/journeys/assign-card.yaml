@@ -1,0 +1,45 @@
+id: assign-card
+title: Assign a card
+feature: cards.assign
+actor: grace
+actors: [member, owner]
+metrics: [keel.card.assigned, keel.card.assign.machines]
+steps:
+  - id: sign-in
+    ui:
+      - { goto: /sign-in }
+      - { see: Sign in }
+      - { fill: { label: Email, text: grace@keel.test } }
+      - { fill: { label: Password, text: keel-local-only } }
+      - { click: Sign in }
+      - { see: Launch }
+    api:
+      method: POST
+      path: /session
+      body:
+        email: grace@keel.test
+        password: keel-local-only
+      expect: 201
+    thinkMs: { min: 200, max: 600 }
+  - id: open-card
+    ui:
+      - { goto: /boards/launch }
+      - { see: Pin the ports }
+      - { click: Pin the ports }
+      - { see: Assign }
+    api:
+      method: GET
+      path: /cards/card_02
+      expect: 200
+    thinkMs: { min: 200, max: 600 }
+  - id: assign
+    ui:
+      - { click: Assign }
+      - { see: Assigned to Ada }
+    api:
+      method: POST
+      path: /cards/card_02/assignee
+      body:
+        userId: user_ada
+      expect: 200
+    thinkMs: { min: 200, max: 800 }

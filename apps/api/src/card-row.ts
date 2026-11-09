@@ -7,6 +7,8 @@ export type CardRow = {
   column: Card["column"];
   position: number;
   author_id: string;
+  assignee_id: string | null;
+  assignee_name: string | null;
   version: string;
   created_at: Date;
   updated_at: Date;
@@ -20,7 +22,7 @@ export type CommentRow = {
   created_at: Date;
 };
 
-export const CARD_SELECT = `id, title, "column", position, author_id, version::text AS version, created_at, updated_at`;
+export const CARD_SELECT = `id, title, "column", position, author_id, assignee_id, (SELECT name FROM users WHERE users.id = cards.assignee_id) AS assignee_name, version::text AS version, created_at, updated_at`;
 
 export function mapCard(row: CardRow): Card {
   return {
@@ -30,6 +32,8 @@ export function mapCard(row: CardRow): Card {
     column: row.column,
     position: Number(row.position),
     authorId: row.author_id,
+    assigneeId: row.assignee_id,
+    assigneeName: row.assignee_name,
     createdAt: row.created_at.toISOString(),
     updatedAt: row.updated_at.toISOString(),
     version: Number(row.version),

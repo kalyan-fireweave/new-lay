@@ -45,6 +45,10 @@ const EMITTED = [
   "keel.pulse.rejected",
   "keel.pulse.failed",
   "keel.pulse.machines",
+  "keel.card.assigned",
+  "keel.card.assign.rejected",
+  "keel.card.assign.failed",
+  "keel.card.assign.machines",
 ] as const;
 
 export type BusinessMetric =
@@ -57,7 +61,10 @@ export type BusinessMetric =
   | "keel.card.duplicate.failed"
   | "keel.pulse.recorded"
   | "keel.pulse.rejected"
-  | "keel.pulse.failed";
+  | "keel.pulse.failed"
+  | "keel.card.assigned"
+  | "keel.card.assign.rejected"
+  | "keel.card.assign.failed";
 
 export type RequestSignal = {
   method: string;
@@ -218,6 +225,9 @@ export function startTelemetry(options?: {
   const pulseRecorded = counter("keel.pulse.recorded");
   const pulseRejected = counter("keel.pulse.rejected");
   const pulseFailed = counter("keel.pulse.failed");
+  const assigned = counter("keel.card.assigned");
+  const assignRejected = counter("keel.card.assign.rejected");
+  const assignFailed = counter("keel.card.assign.failed");
   const business = {
     "keel.card.created": created,
     "keel.card.moved": moved,
@@ -229,6 +239,9 @@ export function startTelemetry(options?: {
     "keel.pulse.recorded": pulseRecorded,
     "keel.pulse.rejected": pulseRejected,
     "keel.pulse.failed": pulseFailed,
+    "keel.card.assigned": assigned,
+    "keel.card.assign.rejected": assignRejected,
+    "keel.card.assign.failed": assignFailed,
   };
 
   async function flush(): Promise<void> {
@@ -244,7 +257,11 @@ export function startTelemetry(options?: {
     async record(signal, status?: number, runId?: string) {
       if (typeof signal === "string") {
         const attributes: Attributes = {
-          "http.route": signal.startsWith("keel.pulse") ? "/pulse" : "/cards/:id/duplicate",
+          "http.route": signal.startsWith("keel.pulse")
+            ? "/pulse"
+            : signal.startsWith("keel.card.assign")
+              ? "/cards/:id/assignee"
+              : "/cards/:id/duplicate",
           "http.request.method": "POST",
           "http.response.status_code": status ?? 0,
         };
@@ -274,6 +291,9 @@ export function startTelemetry(options?: {
       if (signal.business === "keel.pulse.recorded" && signal.status === 201) business[signal.business].add(1, attributes);
       if (signal.business === "keel.pulse.rejected" && signal.status >= 400 && signal.status < 500) business[signal.business].add(1, attributes);
       if (signal.business === "keel.pulse.failed" && signal.status >= 500) business[signal.business].add(1, attributes);
+      if (signal.business === "keel.card.assigned" && signal.status === 200) business[signal.business].add(1, attributes);
+      if (signal.business === "keel.card.assign.rejected" && signal.status >= 400 && signal.status < 500) business[signal.business].add(1, attributes);
+      if (signal.business === "keel.card.assign.failed" && signal.status >= 500) business[signal.business].add(1, attributes);
       await flush();
     },
     flush,

@@ -6,4 +6,5 @@ export const controlPoints = defineControlPoints({
   "team-shared-moves": { local: true },
   "card-duplicate": { local: true },
   "board-pulse": { local: true },
+  "card-assign": { local: true },
 });

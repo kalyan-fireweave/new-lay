@@ -43,6 +43,7 @@ export default defineConfig({
       "/ready": proxy(target),
       "/otel": proxy(target),
       "/pulse": proxy(target),
+      "/assignees": proxy(target),
     },
   },
   test: {

@@ -86,4 +86,11 @@ export const api = {
   removeMember: (teamId: string, userId: string) =>
     request<{ team: Team }>(`/teams/${teamId}/members/${userId}`, { method: "DELETE" }),
   pulse: () => request<{ recorded: boolean }>("/pulse", { method: "POST" }),
+  assignees: () => request<{ users: DirectoryUser[] }>("/assignees"),
+  assignCard: (cardId: string, userId: string, key: string) =>
+    request<{ card: Card }>(`/cards/${cardId}/assignee`, {
+      method: "POST",
+      body: JSON.stringify({ userId }),
+      headers: { "idempotency-key": key },
+    }),
 };

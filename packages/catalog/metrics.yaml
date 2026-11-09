@@ -52,3 +52,19 @@ metrics:
     kind: counter
     signal: infra
     description: Pulses saved on the infrastructure account, with no run id.
+  - name: keel.card.assigned
+    kind: counter
+    signal: app
+    description: Cards assigned by POST /cards/:id/assignee.
+  - name: keel.card.assign.rejected
+    kind: counter
+    signal: app
+    description: Assign requests the API refused.
+  - name: keel.card.assign.failed
+    kind: counter
+    signal: app
+    description: Assign requests that failed before the machine count was saved.
+  - name: keel.card.assign.machines
+    kind: counter
+    signal: infra
+    description: Assignments saved on the infrastructure account, with no run id.

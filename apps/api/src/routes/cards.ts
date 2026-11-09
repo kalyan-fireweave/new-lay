@@ -6,6 +6,7 @@ import type { Card } from "@keel/contracts/board";
 import type { Telemetry } from "@keel/otel";
 import type { User } from "@keel/contracts/session";
 import {
+  assignCardBody,
   cardDetailResponse,
   cardEnvelope,
   changesResponse,
@@ -16,7 +17,9 @@ import {
   patchCardResponse,
   searchResponse,
 } from "@keel/contracts/writes";
+import { usersResponse } from "@keel/contracts/teams";
 import { currentUser } from "../auth.ts";
+import { cardAssignEnabled, recordAssign, recordMachineAssign } from "../card-assign.ts";
 import { cardDuplicateEnabled, recordDuplicate } from "../card-duplicate.ts";
 import { sharesTeam, teamSharedMovesEnabled } from "../team-moves.ts";
 import { CARD_SELECT, mapCard, mapComment, type CardRow, type CommentRow } from "../card-row.ts";
@@ -514,6 +517,98 @@ export function cardRoutes(pool: pg.Pool, telemetry: Telemetry): Hono {
     if (result.kind === "created") c.set("keelBusiness", "keel.card.starred");
     if (result.kind === "replay") c.header("x-keel-idempotent", "replay");
     return c.json(result.body, 201);
+  });
+
+  app.get("/assignees", async (c) => {
+    const user = await currentUser(pool, c);
+    if (!user) return c.json(UNAUTHENTICATED, 401);
+    if (!(await cardAssignEnabled(user.id))) return c.json(NOT_FOUND, 404);
+    const found = await pool.query<{ id: string; email: string; name: string; role: User["role"] }>(
+      "SELECT id, email, name, role FROM users ORDER BY name, id",
+    );
+    return c.json(usersResponse.parse({ users: found.rows }));
+  });
+
+  app.post("/cards/:id/assignee", async (c) => {
+    const user = await currentUser(pool, c);
+    if (!user) return c.json(UNAUTHENTICATED, 401);
+    const origin = badOrigin(c);
+    if (origin) return origin;
+    if (!(await cardAssignEnabled(user.id))) return c.json(NOT_FOUND, 404);
+    const key = c.req.header("idempotency-key")?.trim() ?? "";
+    if (!key) {
+      await recordAssign(telemetry, "rejected", 400);
+      return c.json(INVALID_BODY, 400);
+    }
+    const body = await readJson(c);
+    if (body instanceof Response) {
+      await recordAssign(telemetry, "rejected", 400);
+      return body;
+    }
+    const parsed = assignCardBody.safeParse(body);
+    const userId = parsed.success ? parsed.data.userId.trim() : "";
+    if (!parsed.success || userId.length === 0) {
+      await recordAssign(telemetry, "rejected", 400);
+      return c.json(INVALID_BODY, 400);
+    }
+    const id = c.req.param("id");
+    const requestHash = hashBody({ assigneeOf: id, userId });
+    try {
+      const result = await withTx(pool, async (client) => {
+        if (!(await lockBoard(client))) return { kind: "missing" as const };
+        const prior = await savedIdempotency(client, key, user.id, requestHash);
+        if (prior && "conflict" in prior) return { kind: "conflict" as const };
+        if (prior && "replay" in prior) return { kind: "replay" as const, body: prior.replay.response_json };
+        const source = await readCard(client, id);
+        if (!source) return { kind: "missing" as const };
+        if (!canEdit(user, source.author_id)) return { kind: "forbidden" as const };
+        const known = await client.query("SELECT 1 FROM users WHERE id = $1", [userId]);
+        if ((known.rowCount ?? 0) !== 1) return { kind: "missing" as const };
+        const version = await bumpRevision(client);
+        const now = new Date();
+        const updated = await client.query<CardRow>(
+          `UPDATE cards SET assignee_id = $1, version = $2, updated_at = $3 WHERE id = $4 RETURNING ${CARD_SELECT}`,
+          [userId, version, now, id],
+        );
+        const envelope = cardEnvelope.parse({ card: mapCard(updated.rows[0]) });
+        await remember(client, key, user.id, requestHash, envelope);
+        return { kind: "assigned" as const, body: envelope };
+      });
+      if (result.kind === "conflict") {
+        await recordAssign(telemetry, "rejected", 409);
+        return c.json({ error: { code: "conflict", message: "This idempotency key was already used." } }, 409);
+      }
+      if (result.kind === "missing") {
+        await recordAssign(telemetry, "rejected", 404);
+        return c.json(NOT_FOUND, 404);
+      }
+      if (result.kind === "forbidden") {
+        await recordAssign(telemetry, "rejected", 403);
+        return c.json({ error: { code: "forbidden", message: "You cannot assign this card." } }, 403);
+      }
+      if (consumeFault(c.req.header("x-keel-fault"))) {
+        await recordAssign(telemetry, "failed", 500);
+        throw new Error("keel fault");
+      }
+      if (result.kind === "replay") {
+        c.header("x-keel-idempotent", "replay");
+        return c.json(result.body, 200);
+      }
+      const runId = c.req.header("x-keel-run-id")?.trim();
+      try {
+        await recordMachineAssign();
+      } catch (error) {
+        console.error(error instanceof Error ? error.message : error);
+        await recordAssign(telemetry, "failed", 502);
+        return c.json({ error: { code: "internal", message: "The assign failed." } }, 502);
+      }
+      await recordAssign(telemetry, "assigned", 200, runId || undefined);
+      return c.json(result.body, 200);
+    } catch (error) {
+      if (error instanceof Error && error.message === "keel fault") throw error;
+      await recordAssign(telemetry, "failed", 500);
+      throw error;
+    }
   });
 
   return app;

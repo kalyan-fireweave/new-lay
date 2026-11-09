@@ -17,6 +17,12 @@ export const patchCardBody = z
   .strict()
   .refine((body) => body.title !== undefined || body.column !== undefined);
 
+export const assignCardBody = z
+  .object({
+    userId: z.string(),
+  })
+  .strict();
+
 export const commentBody = z
   .object({
     body: z.string(),

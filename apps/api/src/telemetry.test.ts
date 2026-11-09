@@ -274,6 +274,110 @@ it("counts a failed pulse when the infrastructure account refuses the machine co
   expect(points(memory, "keel.pulse.recorded").reduce((sum, point) => sum + point.value, 0)).toBe(0);
 });
 
+it("assigns a card on the application account and posts the machine count without a run id", async () => {
+  const { app, memory } = open();
+  const token = await signIn(app, "grace@keel.test");
+  const bodies: string[] = [];
+  const original = globalThis.fetch;
+  globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+    if (String(input).endsWith("/v1/metrics")) {
+      bodies.push(String(init?.body ?? ""));
+      return new Response(null, { status: 200 });
+    }
+    return original(input, init);
+  }) as typeof fetch;
+  try {
+    const response = await app.request("/cards/card_02/assignee", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        cookie: `keel_session=${token}`,
+        "idempotency-key": randomUUID(),
+        "x-keel-run-id": "run_assign",
+      },
+      body: JSON.stringify({ userId: "user_ada" }),
+    });
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as { card: { assigneeId: string; assigneeName: string } };
+    expect(body.card.assigneeId).toBe("user_ada");
+    expect(body.card.assigneeName).toBe("Ada");
+  } finally {
+    globalThis.fetch = original;
+  }
+  expect(bodies).toHaveLength(1);
+  const posted = JSON.parse(bodies[0]) as {
+    resourceMetrics: { resource: { attributes: { key: string; value: { stringValue: string } }[] } }[];
+  };
+  const signal = posted.resourceMetrics[0]?.resource.attributes.find((item) => item.key === "keel.signal");
+  expect(signal?.value.stringValue).toBe("infra");
+  expect(bodies[0].includes("run_assign")).toBe(false);
+  expect(bodies[0].includes("keel.run_id")).toBe(false);
+  const assigned = points(memory, "keel.card.assigned");
+  expect(Math.max(...assigned.map((point) => point.value))).toBe(1);
+  expect(assigned.some((point) => point.attributes["keel.run_id"] === "run_assign")).toBe(true);
+  expect(resourceSignal(memory, "keel.card.assigned")).toBe("app");
+});
+
+it("refuses an assignment from a viewer and does not post a machine count", async () => {
+  const { app, memory } = open();
+  const token = await signIn(app, "linus@keel.test");
+  const original = globalThis.fetch;
+  let posted = 0;
+  globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+    if (String(input).endsWith("/v1/metrics")) {
+      posted += 1;
+      return new Response(null, { status: 200 });
+    }
+    return original(input, init);
+  }) as typeof fetch;
+  try {
+    const response = await app.request("/cards/card_01/assignee", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        cookie: `keel_session=${token}`,
+        "idempotency-key": randomUUID(),
+      },
+      body: JSON.stringify({ userId: "user_grace" }),
+    });
+    expect(response.status).toBe(403);
+  } finally {
+    globalThis.fetch = original;
+  }
+  expect(posted).toBe(0);
+  const rejected = points(memory, "keel.card.assign.rejected");
+  expect(rejected.some((point) => point.attributes["http.response.status_code"] === 403)).toBe(true);
+  expect(points(memory, "keel.card.assigned").reduce((sum, point) => sum + point.value, 0)).toBe(0);
+});
+
+it("counts a failed assignment when the infrastructure account refuses the machine count", async () => {
+  const { app, memory } = open();
+  const token = await signIn(app, "ada@keel.test");
+  const original = globalThis.fetch;
+  globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+    if (String(input).endsWith("/v1/metrics")) return new Response(null, { status: 503 });
+    return original(input, init);
+  }) as typeof fetch;
+  try {
+    const response = await app.request("/cards/card_01/assignee", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        cookie: `keel_session=${token}`,
+        "idempotency-key": randomUUID(),
+        "x-keel-run-id": "run_assign_failed",
+      },
+      body: JSON.stringify({ userId: "user_grace" }),
+    });
+    expect(response.status).toBe(502);
+  } finally {
+    globalThis.fetch = original;
+  }
+  const failed = points(memory, "keel.card.assign.failed");
+  expect(Math.max(...failed.map((point) => point.value))).toBe(1);
+  expect(points(memory, "keel.card.assigned").reduce((sum, point) => sum + point.value, 0)).toBe(0);
+});
+
 function resourceSignal(memory: MemoryExporters, name: string): string | undefined {
   for (const resource of memory.metrics.getMetrics()) {
     const carries = resource.scopeMetrics.some((scope) => scope.metrics.some((metric) => metric.descriptor.name === name));

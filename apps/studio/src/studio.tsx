@@ -18,6 +18,10 @@ const titles: Record<string, string> = {
   "keel.pulse.rejected": "Pulses refused",
   "keel.pulse.failed": "Pulses failed",
   "keel.pulse.machines": "Machine pulses",
+  "keel.card.assigned": "Cards assigned",
+  "keel.card.assign.rejected": "Assigns refused",
+  "keel.card.assign.failed": "Assigns failed",
+  "keel.card.assign.machines": "Machine assigns",
   "http.server.requests": "Requests",
   "http.server.request.duration": "Request time",
 };
@@ -34,6 +38,10 @@ const plain: Record<string, string> = {
   "keel.pulse.rejected": "A pulse was refused.",
   "keel.pulse.failed": "A pulse failed.",
   "keel.pulse.machines": "A pulse was saved on the infrastructure account.",
+  "keel.card.assigned": "A card was assigned on the application account.",
+  "keel.card.assign.rejected": "An assignment was refused.",
+  "keel.card.assign.failed": "An assignment failed.",
+  "keel.card.assign.machines": "An assignment was saved on the infrastructure account.",
   "http.server.requests": "The API answered a call.",
   "http.server.request.duration": "How long a call took.",
 };
