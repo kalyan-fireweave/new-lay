@@ -10,6 +10,8 @@ function card(index: number): Card {
     column,
     position: (Math.floor(index / 3) + 1) * 1024,
     authorId: index % 2 === 0 ? "user_ada" : "user_grace",
+    assigneeId: null,
+    assigneeName: null,
     createdAt: "2026-11-06T00:00:00.000Z",
     updatedAt: "2026-11-06T00:00:00.000Z",
     version: 1,

@@ -195,8 +195,10 @@ export function BoardPage() {
                         navigate(`/boards/${boardId}/cards/${card.id}`);
                       }
                     }}
+                    aria-label={title}
                   >
                     {title}
+                    {card.assigneeName ? <span className="assignee">{card.assigneeName}</span> : null}
                   </div>
                 );
               })}

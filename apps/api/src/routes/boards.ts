@@ -1,22 +1,12 @@
 import { getCookie } from "hono/cookie";
 import { Hono } from "hono";
 import type pg from "pg";
-import { boardResponse, type Card } from "@keel/contracts/board";
+import { boardResponse } from "@keel/contracts/board";
 import { createHash } from "node:crypto";
+import { CARD_SELECT, mapCard, type CardRow } from "../card-row.ts";
 
 const UNAUTHENTICATED = { error: { code: "unauthenticated", message: "Sign in required." } };
 const NOT_FOUND = { error: { code: "not_found", message: "Board not found." } };
-
-type CardRow = {
-  id: string;
-  title: string;
-  column: Card["column"];
-  position: number;
-  author_id: string;
-  version: string;
-  created_at: Date;
-  updated_at: Date;
-};
 
 function tokenHash(token: string): string {
   return createHash("sha256").update(token).digest("hex");
@@ -46,7 +36,7 @@ export function boardRoutes(pool: pg.Pool): Hono {
     if (!row) return c.json(NOT_FOUND, 404);
 
     const cards = await pool.query<CardRow>(
-      `SELECT id, title, "column", position, author_id, version::text AS version, created_at, updated_at
+      `SELECT ${CARD_SELECT}
        FROM cards
        WHERE board_id = 'board_launch'
        ORDER BY CASE "column" WHEN 'todo' THEN 0 WHEN 'doing' THEN 1 ELSE 2 END, position ASC`,
@@ -55,17 +45,7 @@ export function boardRoutes(pool: pg.Pool): Hono {
     const body = boardResponse.parse({
       board: { id: "launch", name: row.name, revision: Number(row.revision) },
       columns: ["todo", "doing", "done"],
-      cards: cards.rows.map((card) => ({
-        id: card.id,
-        boardId: "launch",
-        title: card.title,
-        column: card.column,
-        position: card.position,
-        authorId: card.author_id,
-        createdAt: card.created_at.toISOString(),
-        updatedAt: card.updated_at.toISOString(),
-        version: Number(card.version),
-      })),
+      cards: cards.rows.map((card) => mapCard(card)),
     });
     return c.json(body);
   });

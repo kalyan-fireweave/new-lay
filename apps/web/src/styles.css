@@ -264,6 +264,8 @@ button, .linkish {
 }
 
 .card { cursor: pointer; }
+.assignee { display: block; margin-top: 4px; color: var(--muted); font-size: 12px; }
+.assign { display: flex; flex-wrap: wrap; gap: 8px; align-items: end; }
 .card[draggable="true"] { cursor: grab; }
 .pending { color: var(--muted); border-style: dashed; font-weight: 500; }
 

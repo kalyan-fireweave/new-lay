@@ -9,6 +9,8 @@ export const cardSchema = z.object({
   column: columnSchema,
   position: z.number(),
   authorId: z.string(),
+  assigneeId: z.string().nullable(),
+  assigneeName: z.string().nullable(),
   createdAt: z.string(),
   updatedAt: z.string(),
   version: z.number(),

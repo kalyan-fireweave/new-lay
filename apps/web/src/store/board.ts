@@ -9,6 +9,8 @@ export type Card = {
   column: ColumnName;
   position: number;
   authorId: string;
+  assigneeId: string | null;
+  assigneeName: string | null;
   createdAt: string;
   updatedAt: string;
   version: number;

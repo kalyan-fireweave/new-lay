@@ -55,7 +55,7 @@ async function execute(name: string, journey: Journey, origin: string): Promise<
       headers["content-type"] = "application/json";
       body = JSON.stringify(api.body);
     }
-    if (api.method === "POST" && (api.path === "/cards" || api.path.endsWith("/comments") || api.path.endsWith("/stars") || api.path.endsWith("/duplicate"))) {
+    if (api.method === "POST" && (api.path === "/cards" || api.path.endsWith("/comments") || api.path.endsWith("/stars") || api.path.endsWith("/duplicate") || api.path.endsWith("/assignee"))) {
       headers["idempotency-key"] = randomUUID();
     }
     if (api.ifMatch) {
